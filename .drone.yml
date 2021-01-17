@@ -1,0 +1,75 @@
+---
+# IMPORTANT: only .drone.yml or .drone.star is needed
+# By default, drone will look for .drone.yml which is expected to contain a yaml definition of the pipeline.
+# It is also possible to define the pipeline in the Starlark language (see https://docs.bazel.build/versions/master/skylark/language.html)
+# When using Starlark, you also need to configure the Drone repo settings and specify "Configuration" as .drone.star
+
+kind: pipeline
+name: default
+type: kubernetes
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+- name: build
+  pull: if-not-exists
+  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind
+  commands:
+  # wait for docker service to be up before running docker build
+  - n=0; while [ "$n" -lt 60 ] && [ ! docker stats --no-stream ]; do n=$(( n + 1 )); sleep 1; done
+  - docker build -t acp-example-app:$${DRONE_COMMIT_SHA} . --no-cache
+  when:
+    event:
+    - push
+    - tag
+
+- name: scan-image
+  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/anchore-submission:latest
+  pull: always
+  environment:
+    IMAGE_NAME: acp-example-app:${DRONE_COMMIT_SHA}
+    WHITELIST: CVE-2008-4318,CVE-2020-25613
+  when:
+    event:
+    - push
+    - tag
+
+- name: publish
+  image: plugins/ecr
+  environment:
+    AWS_REGION: eu-west-2
+  settings:
+    access_key:
+      from_secret: aws_access_key_id
+    secret_key:
+      from_secret: aws_secret_access_key
+    repo: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/flask-example-app
+    registry: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/
+    tags:
+      - ${DRONE_TAG}
+
+- name: publish-latest
+  image: plugins/ecr
+  environment:
+    AWS_REGION: eu-west-2
+  settings:
+    access_key:
+      from_secret: aws_access_key_id
+    secret_key:
+      from_secret: aws_secret_access_key
+    repo: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/flask-example-app
+    registry: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/
+    tags:
+      - latest
+
+services:
+- name: docker
+  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/flask-example-app
+
+- name: anchore-submission-server
+  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/anchore-submission:latest
+  pull: always
+  commands:
+    - /run.sh server
