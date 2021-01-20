@@ -29,7 +29,7 @@ steps:
   image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/anchore-submission:latest
   pull: always
   environment:
-    IMAGE_NAME: acp-example-app:${DRONE_COMMIT_SHA}
+    IMAGE_NAME: acp-flask-example-app:${DRONE_COMMIT_SHA}
     WHITELIST: CVE-2008-4318,CVE-2020-25613
   when:
     event:
@@ -66,7 +66,7 @@ steps:
 
 services:
 - name: docker
-  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/flask-example-app
+  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind
 
 - name: anchore-submission-server
   image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/anchore-submission:latest
