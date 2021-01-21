@@ -35,7 +35,7 @@ steps:
     event:
     - push
     - tag
-
+    
 - name: publish
   image: plugins/ecr
   environment:
@@ -49,6 +49,9 @@ steps:
     registry: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/
     tags:
       - ${DRONE_TAG}
+  when:
+    event:
+    - tag
 
 - name: publish-latest
   image: plugins/ecr
