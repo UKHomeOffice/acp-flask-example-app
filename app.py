@@ -20,5 +20,9 @@ def request_count():
         total.append(prometheus_client.generate_latest(v))
     return Response(total, mimetype = "text/plain")
 
+@app.route('/healthcheck')
+def health_check():
+        return Response(status=200)
+    
 if __name__ == '__main__':
     app.run(debug=True, host = '0.0.0.0')
